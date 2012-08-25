@@ -148,7 +148,7 @@ func (db *Couchstore) getDocInfo(id string) (DocInfo, error) {
 	return DocInfo{}, err
 }
 
-func (db *Couchstore) getFromDocInfo(info DocInfo) (Document, error) {
+func (db *Couchstore) GetFromDocInfo(info DocInfo) (Document, error) {
 	var doc *C.Doc
 	rv := &Document{}
 
@@ -169,7 +169,7 @@ func (db *Couchstore) Get(id string) (Document, DocInfo, error) {
 		return Document{}, di, err
 	}
 
-	doc, err := db.getFromDocInfo(di)
+	doc, err := db.GetFromDocInfo(di)
 
 	return doc, di, err
 }
