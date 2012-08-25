@@ -2,6 +2,7 @@ package couchstore
 
 import (
 	"os"
+	"reflect"
 	"runtime"
 	"testing"
 )
@@ -71,4 +72,58 @@ func TestDocumentMutation(t *testing.T) {
 	}
 
 	runtime.GC()
+}
+
+func TestWalking(t *testing.T) {
+	data := map[string]string{
+		"a": "aye",
+		"b": "bye",
+		"c": "cya",
+		"d": "dye",
+	}
+	db, err := Open(",test-database.couch", true)
+	if err != nil {
+		t.Fatalf("Error creating database:  %v", err)
+	}
+	defer db.Close()
+	defer os.Remove(testFilename)
+
+	for k, v := range data {
+		err = db.Save(NewDocument(k, v), NewDocInfo(k, 0))
+		if err != nil {
+			t.Fatalf("Error saving new document:  %v", err)
+		}
+	}
+
+	db.Commit()
+
+	found := []string{}
+	expect := []string{"a", "b", "c", "d"}
+
+	err = db.Walk("", func(fdb *Couchstore, di DocInfo) bool {
+		found = append(found, di.ID())
+		return true
+	})
+	if err != nil {
+		t.Fatalf("Error walking: %v", err)
+	}
+
+	if !reflect.DeepEqual(found, expect) {
+		t.Fatalf("Expected %#v, got %#v", found, expect)
+	}
+
+	found = []string{}
+	expect = []string{"b", "c"}
+
+	err = db.Walk("b", func(fdb *Couchstore, di DocInfo) bool {
+		found = append(found, di.ID())
+		return di.ID() < "c"
+	})
+	if err != nil {
+		t.Fatalf("Error walking: %v", err)
+	}
+
+	if !reflect.DeepEqual(found, expect) {
+		t.Fatalf("Expected %#v, got %#v", found, expect)
+	}
 }

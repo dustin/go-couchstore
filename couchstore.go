@@ -4,17 +4,11 @@ package couchstore
 /*
 #cgo LDFLAGS: -lcouchstore
 
-#include <errno.h>
-#include <string.h>
-#include <sysexits.h>
-#include <stdlib.h>
-#include <unistd.h>
 
 #include <libcouchstore/couch_db.h>
 
-static void initDocInfo(DocInfo *info) {
- memset(info, 0x00, sizeof(*info));
-}
+void initDocInfo(DocInfo *info);
+couchstore_error_t start_all_docs(Db *db, const char *start, void *ctx);
 */
 import "C"
 
@@ -43,6 +37,11 @@ type DocInfo struct {
 func (e couchError) Error() string {
 	return C.GoString(C.couchstore_strerror(_Ctype_couchstore_error_t(e)))
 }
+
+// Walker function.
+//
+// Return true if you want to continue walking.
+type WalkFun func(db *Couchstore, di DocInfo) bool
 
 func maybeError(e _Ctype_couchstore_error_t) error {
 	if e != C.COUCHSTORE_SUCCESS {
@@ -180,4 +179,26 @@ func (db *Couchstore) Delete(id string) error {
 	di := NewDocInfo(id, 0)
 	di.info.deleted = 1
 	return db.Save(NewDocument(id, ""), di)
+}
+
+//export callbackAdapt
+func callbackAdapt(dbp unsafe.Pointer, infop unsafe.Pointer, ctx unsafe.Pointer) int {
+	cb := (*WalkFun)(ctx)
+	db := Couchstore{(*C.Db)(dbp), true}
+	info := DocInfo{*(*C.DocInfo)(infop), nil}
+	if (*cb)(&db, info) {
+		return 0
+	}
+	return C.COUCHSTORE_ERROR_CANCEL
+}
+
+// Walk the DB from a specific location.
+func (db *Couchstore) Walk(startkey string, callback WalkFun) error {
+	e := C.start_all_docs(db.db,
+		C.CString(startkey),
+		unsafe.Pointer(&callback))
+	if e != C.COUCHSTORE_ERROR_CANCEL && e != C.COUCHSTORE_SUCCESS {
+		return couchError(e)
+	}
+	return nil
 }
