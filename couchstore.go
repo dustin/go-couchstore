@@ -19,6 +19,7 @@ static void initDocInfo(DocInfo *info) {
 import "C"
 
 import (
+	"runtime"
 	"unsafe"
 )
 
@@ -31,10 +32,12 @@ type couchError int
 
 type Document struct {
 	doc C.Doc
+	ptr *C.Doc
 }
 
 type DocInfo struct {
 	info C.DocInfo
+	ptr  *C.DocInfo
 }
 
 func (e couchError) Error() string {
@@ -126,26 +129,38 @@ func (info DocInfo) ID() string {
 	return C.GoStringN(info.info.id.buf, _Ctype_int(info.info.id.size))
 }
 
+func freeDocInfo(info *DocInfo) {
+	C.couchstore_free_docinfo(info.ptr)
+}
+
+func freeDoc(doc *Document) {
+	C.couchstore_free_document(doc.ptr)
+}
+
 func (db *Couchstore) getDocInfo(id string) (DocInfo, error) {
 	var inf *C.DocInfo
 	err := maybeError(C.couchstore_docinfo_by_id(db.db,
 		unsafe.Pointer(C.CString(id)), _Ctype_size_t(len(id)), &inf))
 	if err == nil {
-		return DocInfo{*inf}, nil
+		rv := &DocInfo{*inf, inf}
+		runtime.SetFinalizer(rv, freeDocInfo)
+		return *rv, nil
 	}
 	return DocInfo{}, err
 }
 
 func (db *Couchstore) getFromDocInfo(info DocInfo) (Document, error) {
 	var doc *C.Doc
-	rv := Document{}
+	rv := &Document{}
 
 	err := maybeError(C.couchstore_open_doc_with_docinfo(db.db,
 		&info.info, &doc, 0))
 	if err == nil {
 		rv.doc = *doc
+		rv.ptr = doc
+		runtime.SetFinalizer(rv, freeDoc)
 	}
-	return rv, err
+	return *rv, err
 }
 
 // Retrieve a document.

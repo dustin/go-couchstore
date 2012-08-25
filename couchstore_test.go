@@ -2,6 +2,7 @@ package couchstore
 
 import (
 	"os"
+	"runtime"
 	"testing"
 )
 
@@ -68,4 +69,6 @@ func TestDocumentMutation(t *testing.T) {
 		t.Fatalf("Expected error getting deleted doc, got %#v/%#v",
 			di2, doc2)
 	}
+
+	runtime.GC()
 }
