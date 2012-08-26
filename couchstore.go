@@ -85,7 +85,7 @@ func (db *Couchstore) Commit() error {
 }
 
 // Store a document.
-func (db *Couchstore) Save(doc Document, docInfo DocInfo) error {
+func (db *Couchstore) Set(docInfo DocInfo, doc Document) error {
 	return maybeError(C.couchstore_save_document(db.db,
 		&doc.doc, &docInfo.info, C.COMPRESS_DOC_BODIES))
 }
@@ -185,7 +185,7 @@ func (db *Couchstore) Get(id string) (Document, DocInfo, error) {
 func (db *Couchstore) Delete(id string) error {
 	di := NewDocInfo(id, 0)
 	di.info.deleted = 1
-	return db.Save(NewDocument(id, ""), di)
+	return db.Set(di, NewDocument(id, ""))
 }
 
 //export callbackAdapt

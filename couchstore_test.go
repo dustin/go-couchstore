@@ -37,7 +37,7 @@ func TestDocumentMutation(t *testing.T) {
 	defer db.Close()
 	defer os.Remove(testFilename)
 
-	err = db.Save(NewDocument("x", "value of x"), NewDocInfo("x", 0))
+	err = db.Set(NewDocInfo("x", 0), NewDocument("x", "value of x"))
 	if err != nil {
 		t.Fatalf("Error saving new document:  %v", err)
 	}
@@ -90,7 +90,7 @@ func TestWalking(t *testing.T) {
 	defer os.Remove(testFilename)
 
 	for k, v := range data {
-		err = db.Save(NewDocument(k, v), NewDocInfo(k, 0))
+		err = db.Set(NewDocInfo(k, 0), NewDocument(k, v))
 		if err != nil {
 			t.Fatalf("Error saving new document:  %v", err)
 		}
@@ -147,7 +147,7 @@ func TestDocWalking(t *testing.T) {
 	defer os.Remove(testFilename)
 
 	for k, v := range data {
-		err = db.Save(NewDocument(k, v), NewDocInfo(k, 0))
+		err = db.Set(NewDocInfo(k, 0), NewDocument(k, v))
 		if err != nil {
 			t.Fatalf("Error saving new document:  %v", err)
 		}
@@ -197,7 +197,7 @@ func TestBulkWriter(t *testing.T) {
 	defer db.Close()
 	defer os.Remove(testFilename)
 
-	db.Save(NewDocument("deleteme", "val"), NewDocInfo("deleteme", 0))
+	db.Set(NewDocInfo("deleteme", 0), NewDocument("deleteme", "val"))
 	db.Commit()
 
 	bw := db.Bulk()
