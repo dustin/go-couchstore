@@ -38,10 +38,16 @@ func (e couchError) Error() string {
 	return C.GoString(C.couchstore_strerror(_Ctype_couchstore_error_t(e)))
 }
 
+// Return this error to indicate a walker should stop iterating.
+var StopIeration error = couchError(C.COUCHSTORE_ERROR_CANCEL)
+
 // Walker function.
 //
-// Return true if you want to continue walking.
-type WalkFun func(db *Couchstore, di DocInfo) bool
+// Stops at the end of the DB or on error.
+type WalkFun func(db *Couchstore, di DocInfo) error
+
+// Walker function that also includes the document.
+type DocWalkFun func(db *Couchstore, di DocInfo, Doc Document) error
 
 func maybeError(e _Ctype_couchstore_error_t) error {
 	if e != C.COUCHSTORE_SUCCESS {
@@ -186,10 +192,14 @@ func callbackAdapt(dbp unsafe.Pointer, infop unsafe.Pointer, ctx unsafe.Pointer)
 	cb := (*WalkFun)(ctx)
 	db := Couchstore{(*C.Db)(dbp), true}
 	info := DocInfo{*(*C.DocInfo)(infop), nil}
-	if (*cb)(&db, info) {
+	switch i := (*cb)(&db, info).(type) {
+	case nil:
 		return 0
+	case couchError:
+		return int(i)
 	}
-	return C.COUCHSTORE_ERROR_CANCEL
+	// Really need couchstore to give us a better error here.
+	return -404
 }
 
 // Walk the DB from a specific location.
@@ -201,4 +211,15 @@ func (db *Couchstore) Walk(startkey string, callback WalkFun) error {
 		return couchError(e)
 	}
 	return nil
+}
+
+// Walk the DB from a specific location including the complete docs.
+func (db *Couchstore) WalkDocs(startkey string, callback DocWalkFun) error {
+	return db.Walk(startkey, func(fdb *Couchstore, di DocInfo) error {
+		doc, err := fdb.GetFromDocInfo(di)
+		if err != nil {
+			return err
+		}
+		return callback(fdb, di, doc)
+	})
 }

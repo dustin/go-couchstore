@@ -100,9 +100,9 @@ func TestWalking(t *testing.T) {
 	found := []string{}
 	expect := []string{"a", "b", "c", "d"}
 
-	err = db.Walk("", func(fdb *Couchstore, di DocInfo) bool {
+	err = db.Walk("", func(fdb *Couchstore, di DocInfo) error {
 		found = append(found, di.ID())
-		return true
+		return nil
 	})
 	if err != nil {
 		t.Fatalf("Error walking: %v", err)
@@ -115,9 +115,69 @@ func TestWalking(t *testing.T) {
 	found = []string{}
 	expect = []string{"b", "c"}
 
-	err = db.Walk("b", func(fdb *Couchstore, di DocInfo) bool {
+	err = db.Walk("b", func(fdb *Couchstore, di DocInfo) error {
 		found = append(found, di.ID())
-		return di.ID() < "c"
+		if di.ID() >= "c" {
+			return StopIeration
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("Error walking: %v", err)
+	}
+
+	if !reflect.DeepEqual(found, expect) {
+		t.Fatalf("Expected %#v, got %#v", found, expect)
+	}
+}
+
+func TestDocWalking(t *testing.T) {
+	data := map[string]string{
+		"a": "aye",
+		"b": "bye",
+		"c": "cya",
+		"d": "dye",
+	}
+	db, err := Open(",test-database.couch", true)
+	if err != nil {
+		t.Fatalf("Error creating database:  %v", err)
+	}
+	defer db.Close()
+	defer os.Remove(testFilename)
+
+	for k, v := range data {
+		err = db.Save(NewDocument(k, v), NewDocInfo(k, 0))
+		if err != nil {
+			t.Fatalf("Error saving new document:  %v", err)
+		}
+	}
+
+	db.Commit()
+
+	found := map[string]string{}
+	expect := data
+
+	err = db.WalkDocs("", func(fdb *Couchstore, di DocInfo, doc Document) error {
+		found[di.ID()] = doc.Value()
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("Error walking: %v", err)
+	}
+
+	if !reflect.DeepEqual(found, expect) {
+		t.Fatalf("Expected %#v, got %#v", found, expect)
+	}
+
+	found = map[string]string{}
+	expect = map[string]string{"b": "bye", "c": "cya"}
+
+	err = db.WalkDocs("b", func(fdb *Couchstore, di DocInfo, doc Document) error {
+		found[di.ID()] = doc.Value()
+		if di.ID() >= "c" {
+			return StopIeration
+		}
+		return nil
 	})
 	if err != nil {
 		t.Fatalf("Error walking: %v", err)
