@@ -197,6 +197,9 @@ func TestBulkWriter(t *testing.T) {
 	defer db.Close()
 	defer os.Remove(testFilename)
 
+	db.Save(NewDocument("deleteme", "val"), NewDocInfo("deleteme", 0))
+	db.Commit()
+
 	bw := db.Bulk()
 	defer bw.Close()
 
@@ -209,6 +212,7 @@ func TestBulkWriter(t *testing.T) {
 	for k, v := range stuff {
 		bw.Set(NewDocInfo(k, 0), NewDocument(k, v))
 	}
+	bw.Delete(NewDocInfo("deleteme", 0))
 
 	err = bw.Commit()
 	if err != nil {
@@ -218,7 +222,9 @@ func TestBulkWriter(t *testing.T) {
 	found := map[string]string{}
 
 	err = db.WalkDocs("", func(fdb *Couchstore, di DocInfo, doc Document) error {
-		found[di.ID()] = doc.Value()
+		if !di.IsDeleted() {
+			found[di.ID()] = doc.Value()
+		}
 		return nil
 	})
 	if err != nil {

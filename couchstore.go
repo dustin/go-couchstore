@@ -130,6 +130,11 @@ func (info DocInfo) ID() string {
 	return C.GoStringN(info.info.id.buf, _Ctype_int(info.info.id.size))
 }
 
+// True if this docinfo represents a deleted document.
+func (info DocInfo) IsDeleted() bool {
+	return info.info.deleted != 0
+}
+
 func freeDocInfo(info *DocInfo) {
 	C.couchstore_free_docinfo(info.ptr)
 }
@@ -259,6 +264,7 @@ func (b *bulkWriter) Set(di DocInfo, doc Document) {
 }
 
 func (b *bulkWriter) Delete(di DocInfo) {
+	di.info.deleted = 1
 	b.update <- instr{di, NewDocument("", "")}
 }
 
