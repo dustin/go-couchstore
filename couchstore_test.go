@@ -1,6 +1,7 @@
 package couchstore
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 	"runtime"
@@ -185,5 +186,46 @@ func TestDocWalking(t *testing.T) {
 
 	if !reflect.DeepEqual(found, expect) {
 		t.Fatalf("Expected %#v, got %#v", found, expect)
+	}
+}
+
+func TestBulkWriter(t *testing.T) {
+	db, err := Open(",test-database.couch", true)
+	if err != nil {
+		t.Fatalf("Error creating database:  %v", err)
+	}
+	defer db.Close()
+	defer os.Remove(testFilename)
+
+	bw := db.Bulk()
+	defer bw.Close()
+
+	stuff := map[string]string{}
+
+	for i := 0; i < 13; i++ {
+		stuff[fmt.Sprintf("k%d", i)] = fmt.Sprintf("Value %d", i)
+	}
+
+	for k, v := range stuff {
+		bw.Set(NewDocInfo(k, 0), NewDocument(k, v))
+	}
+
+	err = bw.Commit()
+	if err != nil {
+		t.Fatalf("Error storing batch: %v", err)
+	}
+
+	found := map[string]string{}
+
+	err = db.WalkDocs("", func(fdb *Couchstore, di DocInfo, doc Document) error {
+		found[di.ID()] = doc.Value()
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("Error walking: %v", err)
+	}
+
+	if !reflect.DeepEqual(found, stuff) {
+		t.Fatalf("Expected\n%#v\ngot\n%#v", found, stuff)
 	}
 }
