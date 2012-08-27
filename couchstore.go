@@ -34,6 +34,8 @@ func (e couchError) Error() string {
 	return C.GoString(C.couchstore_strerror(_Ctype_couchstore_error_t(e)))
 }
 
+const DocIsCompressed = C.COUCH_DOC_IS_COMPRESSED
+
 func maybeError(e _Ctype_couchstore_error_t) error {
 	if e != C.COUCHSTORE_SUCCESS {
 		return couchError(e)
