@@ -149,7 +149,7 @@ func (db *Couchstore) GetFromDocInfo(info *DocInfo) (*Document, error) {
 	rv := &Document{}
 
 	err := maybeError(C.couchstore_open_doc_with_docinfo(db.db,
-		&info.info, &doc, 0))
+		&info.info, &doc, C.DECOMPRESS_DOC_BODIES))
 	if err == nil {
 		rv.doc = *doc
 		rv.ptr = doc
