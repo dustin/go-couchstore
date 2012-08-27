@@ -132,19 +132,19 @@ func freeDoc(doc *Document) {
 	C.couchstore_free_document(doc.ptr)
 }
 
-func (db *Couchstore) getDocInfo(id string) (DocInfo, error) {
+func (db *Couchstore) getDocInfo(id string) (*DocInfo, error) {
 	var inf *C.DocInfo
 	err := maybeError(C.couchstore_docinfo_by_id(db.db,
 		unsafe.Pointer(C.CString(id)), _Ctype_size_t(len(id)), &inf))
 	if err == nil {
 		rv := &DocInfo{*inf, inf}
 		runtime.SetFinalizer(rv, freeDocInfo)
-		return *rv, nil
+		return rv, nil
 	}
-	return DocInfo{}, err
+	return &DocInfo{}, err
 }
 
-func (db *Couchstore) GetFromDocInfo(info DocInfo) (Document, error) {
+func (db *Couchstore) GetFromDocInfo(info *DocInfo) (*Document, error) {
 	var doc *C.Doc
 	rv := &Document{}
 
@@ -155,14 +155,14 @@ func (db *Couchstore) GetFromDocInfo(info DocInfo) (Document, error) {
 		rv.ptr = doc
 		runtime.SetFinalizer(rv, freeDoc)
 	}
-	return *rv, err
+	return rv, err
 }
 
 // Retrieve a document.
-func (db *Couchstore) Get(id string) (Document, DocInfo, error) {
+func (db *Couchstore) Get(id string) (*Document, *DocInfo, error) {
 	di, err := db.getDocInfo(id)
 	if err != nil {
-		return Document{}, di, err
+		return nil, di, err
 	}
 
 	doc, err := db.GetFromDocInfo(di)

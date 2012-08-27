@@ -6,6 +6,7 @@ package couchstore
 import "C"
 
 import (
+	"runtime"
 	"unsafe"
 )
 
@@ -15,19 +16,20 @@ var StopIteration error = couchError(C.COUCHSTORE_ERROR_CANCEL)
 // Walker function.
 //
 // Stops at the end of the DB or on error.
-type WalkFun func(db *Couchstore, di DocInfo) error
+type WalkFun func(db *Couchstore, di *DocInfo) error
 
 // Walker function that also includes the document.
-type DocWalkFun func(db *Couchstore, di DocInfo, Doc Document) error
+type DocWalkFun func(db *Couchstore, di *DocInfo, doc *Document) error
 
 //export callbackAdapt
 func callbackAdapt(dbp unsafe.Pointer, infop unsafe.Pointer, ctx unsafe.Pointer) int {
 	cb := (*WalkFun)(ctx)
 	db := Couchstore{(*C.Db)(dbp), true}
-	info := DocInfo{*(*C.DocInfo)(infop), nil}
+	info := &DocInfo{*(*C.DocInfo)(infop), nil}
 	switch i := (*cb)(&db, info).(type) {
 	case nil:
-		return 0
+		runtime.SetFinalizer(info, freeDocInfo)
+		return 1
 	case couchError:
 		return int(i)
 	}
@@ -48,7 +50,7 @@ func (db *Couchstore) Walk(startkey string, callback WalkFun) error {
 
 // Walk the DB from a specific location including the complete docs.
 func (db *Couchstore) WalkDocs(startkey string, callback DocWalkFun) error {
-	return db.Walk(startkey, func(fdb *Couchstore, di DocInfo) error {
+	return db.Walk(startkey, func(fdb *Couchstore, di *DocInfo) error {
 		doc, err := fdb.GetFromDocInfo(di)
 		if err != nil {
 			return err

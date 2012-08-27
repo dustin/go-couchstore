@@ -101,7 +101,7 @@ func TestWalking(t *testing.T) {
 	found := []string{}
 	expect := []string{"a", "b", "c", "d"}
 
-	err = db.Walk("", func(fdb *Couchstore, di DocInfo) error {
+	err = db.Walk("", func(fdb *Couchstore, di *DocInfo) error {
 		found = append(found, di.ID())
 		return nil
 	})
@@ -116,7 +116,7 @@ func TestWalking(t *testing.T) {
 	found = []string{}
 	expect = []string{"b", "c"}
 
-	err = db.Walk("b", func(fdb *Couchstore, di DocInfo) error {
+	err = db.Walk("b", func(fdb *Couchstore, di *DocInfo) error {
 		found = append(found, di.ID())
 		if di.ID() >= "c" {
 			return StopIteration
@@ -158,7 +158,7 @@ func TestDocWalking(t *testing.T) {
 	found := map[string]string{}
 	expect := data
 
-	err = db.WalkDocs("", func(fdb *Couchstore, di DocInfo, doc Document) error {
+	err = db.WalkDocs("", func(fdb *Couchstore, di *DocInfo, doc *Document) error {
 		found[di.ID()] = doc.Value()
 		return nil
 	})
@@ -173,7 +173,7 @@ func TestDocWalking(t *testing.T) {
 	found = map[string]string{}
 	expect = map[string]string{"b": "bye", "c": "cya"}
 
-	err = db.WalkDocs("b", func(fdb *Couchstore, di DocInfo, doc Document) error {
+	err = db.WalkDocs("b", func(fdb *Couchstore, di *DocInfo, doc *Document) error {
 		found[di.ID()] = doc.Value()
 		if di.ID() >= "c" {
 			return StopIteration
@@ -221,7 +221,7 @@ func TestBulkWriter(t *testing.T) {
 
 	found := map[string]string{}
 
-	err = db.WalkDocs("", func(fdb *Couchstore, di DocInfo, doc Document) error {
+	err = db.WalkDocs("", func(fdb *Couchstore, di *DocInfo, doc *Document) error {
 		if !di.IsDeleted() {
 			found[di.ID()] = doc.Value()
 		}
