@@ -119,7 +119,7 @@ func TestWalking(t *testing.T) {
 	err = db.Walk("b", func(fdb *Couchstore, di DocInfo) error {
 		found = append(found, di.ID())
 		if di.ID() >= "c" {
-			return StopIeration
+			return StopIteration
 		}
 		return nil
 	})
@@ -176,7 +176,7 @@ func TestDocWalking(t *testing.T) {
 	err = db.WalkDocs("b", func(fdb *Couchstore, di DocInfo, doc Document) error {
 		found[di.ID()] = doc.Value()
 		if di.ID() >= "c" {
-			return StopIeration
+			return StopIteration
 		}
 		return nil
 	})

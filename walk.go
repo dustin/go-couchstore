@@ -10,7 +10,7 @@ import (
 )
 
 // Return this error to indicate a walker should stop iterating.
-var StopIeration error = couchError(C.COUCHSTORE_ERROR_CANCEL)
+var StopIteration error = couchError(C.COUCHSTORE_ERROR_CANCEL)
 
 // Walker function.
 //
