@@ -8,9 +8,9 @@ import "C"
 // Interface for writing bulk data into couchstore.
 type BulkWriter interface {
 	// Set a document.
-	Set(DocInfo, Document)
+	Set(*DocInfo, *Document)
 	// Delete a document.
-	Delete(DocInfo)
+	Delete(*DocInfo)
 	// Commit the current batch.
 	Commit() error
 	// Shut down this bulk interface.
@@ -18,8 +18,8 @@ type BulkWriter interface {
 }
 
 type instr struct {
-	di  DocInfo
-	doc Document
+	di  *DocInfo
+	doc *Document
 }
 
 type bulkWriter struct {
@@ -39,11 +39,11 @@ func (b *bulkWriter) Commit() error {
 	return <-ch
 }
 
-func (b *bulkWriter) Set(di DocInfo, doc Document) {
+func (b *bulkWriter) Set(di *DocInfo, doc *Document) {
 	b.update <- instr{di, doc}
 }
 
-func (b *bulkWriter) Delete(di DocInfo) {
+func (b *bulkWriter) Delete(di *DocInfo) {
 	di.info.deleted = 1
 	b.update <- instr{di, NewDocument("", "")}
 }

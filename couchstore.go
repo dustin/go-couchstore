@@ -76,13 +76,13 @@ func (db *Couchstore) Commit() error {
 }
 
 // Store a document.
-func (db *Couchstore) Set(docInfo DocInfo, doc Document) error {
+func (db *Couchstore) Set(docInfo *DocInfo, doc *Document) error {
 	return maybeError(C.couchstore_save_document(db.db,
 		&doc.doc, &docInfo.info, C.COMPRESS_DOC_BODIES))
 }
 
 // Get a new document instance with the given id and value.
-func NewDocument(id, value string) Document {
+func NewDocument(id, value string) *Document {
 	doc := Document{}
 
 	doc.doc.id.buf = C.CString(id)
@@ -90,21 +90,21 @@ func NewDocument(id, value string) Document {
 	doc.doc.data.buf = C.CString(value)
 	doc.doc.data.size = _Ctype_size_t(len(value))
 
-	return doc
+	return &doc
 }
 
 // Get the ID of this document
-func (doc Document) ID() string {
+func (doc *Document) ID() string {
 	return C.GoStringN(doc.doc.id.buf, _Ctype_int(doc.doc.id.size))
 }
 
 // Get the value of this document.
-func (doc Document) Value() string {
+func (doc *Document) Value() string {
 	return C.GoStringN(doc.doc.data.buf, _Ctype_int(doc.doc.data.size))
 }
 
 // Create a new docinfo.
-func NewDocInfo(id string, meta uint8) DocInfo {
+func NewDocInfo(id string, meta uint8) *DocInfo {
 	info := DocInfo{}
 	C.initDocInfo(&info.info)
 
@@ -113,11 +113,11 @@ func NewDocInfo(id string, meta uint8) DocInfo {
 
 	info.info.content_meta = _Ctype_couchstore_content_meta_flags(meta)
 
-	return info
+	return &info
 }
 
 // Get the ID of this document info
-func (info DocInfo) ID() string {
+func (info *DocInfo) ID() string {
 	return C.GoStringN(info.info.id.buf, _Ctype_int(info.info.id.size))
 }
 
