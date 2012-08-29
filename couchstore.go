@@ -51,7 +51,7 @@ func Open(pathname string, create bool) (*Couchstore, error) {
 		flags = C.COUCHSTORE_OPEN_FLAG_CREATE
 	}
 	cstr := C.CString(pathname)
-	defer C.cfree(cstr)
+	defer C.freecstring(cstr)
 	err := maybeError(C.couchstore_open_db(cstr, flags, &rv.db))
 	if err == nil {
 		rv.isOpen = true
@@ -133,13 +133,13 @@ func (info DocInfo) IsDeleted() bool {
 
 // Free docinfo made from go.
 func freeMyDocInfo(info *DocInfo) {
-	C.cfree(info.info.id.buf)
+	C.freecstring(info.info.id.buf)
 }
 
 // Free doc made from go.
 func freeMyDoc(doc *Document) {
-	C.cfree(doc.doc.id.buf)
-	C.cfree(doc.doc.data.buf)
+	C.freecstring(doc.doc.id.buf)
+	C.freecstring(doc.doc.data.buf)
 }
 
 // Free docinfo made from couchstore
@@ -155,7 +155,7 @@ func freeDoc(doc *Document) {
 func (db *Couchstore) getDocInfo(id string) (*DocInfo, error) {
 	var inf *C.DocInfo
 	idstr := C.CString(id)
-	defer C.cfree(idstr)
+	defer C.freecstring(idstr)
 	err := maybeError(C.couchstore_docinfo_by_id(db.db,
 		unsafe.Pointer(idstr), _Ctype_size_t(len(id)), &inf))
 	if err == nil {

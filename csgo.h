@@ -10,7 +10,7 @@ typedef struct {
     Doc **docs;
 } couchstore_bulk_t;
 
-void cfree(char *p);
+void freecstring(char *p);
 
 void initDocInfo(DocInfo *info);
 couchstore_error_t start_all_docs(Db *db, const char *start, void *ctx);

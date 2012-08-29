@@ -71,6 +71,6 @@ couchstore_error_t execute_batch(Db *db, couchstore_bulk_t *bulk) {
                                      bulk->len, COMPRESS_DOC_BODIES);
 }
 
-void cfree(char *p) {
+void freecstring(char *p) {
     free(p);
 }
