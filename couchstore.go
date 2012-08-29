@@ -50,8 +50,9 @@ func Open(pathname string, create bool) (*Couchstore, error) {
 	if create {
 		flags = C.COUCHSTORE_OPEN_FLAG_CREATE
 	}
-	err := maybeError(C.couchstore_open_db(C.CString(pathname),
-		flags, &rv.db))
+	cstr := C.CString(pathname)
+	defer C.cfree(cstr)
+	err := maybeError(C.couchstore_open_db(cstr, flags, &rv.db))
 	if err == nil {
 		rv.isOpen = true
 	} else {
@@ -83,14 +84,16 @@ func (db *Couchstore) Set(docInfo *DocInfo, doc *Document) error {
 
 // Get a new document instance with the given id and value.
 func NewDocument(id, value string) *Document {
-	doc := Document{}
+	doc := &Document{}
 
 	doc.doc.id.buf = C.CString(id)
 	doc.doc.id.size = _Ctype_size_t(len(id))
 	doc.doc.data.buf = C.CString(value)
 	doc.doc.data.size = _Ctype_size_t(len(value))
 
-	return &doc
+	runtime.SetFinalizer(doc, freeMyDoc)
+
+	return doc
 }
 
 // Get the ID of this document
@@ -105,7 +108,7 @@ func (doc *Document) Value() string {
 
 // Create a new docinfo.
 func NewDocInfo(id string, meta uint8) *DocInfo {
-	info := DocInfo{}
+	info := &DocInfo{}
 	C.initDocInfo(&info.info)
 
 	info.info.id.buf = C.CString(id)
@@ -113,7 +116,9 @@ func NewDocInfo(id string, meta uint8) *DocInfo {
 
 	info.info.content_meta = _Ctype_couchstore_content_meta_flags(meta)
 
-	return &info
+	runtime.SetFinalizer(info, freeMyDocInfo)
+
+	return info
 }
 
 // Get the ID of this document info
@@ -126,18 +131,33 @@ func (info DocInfo) IsDeleted() bool {
 	return info.info.deleted != 0
 }
 
+// Free docinfo made from go.
+func freeMyDocInfo(info *DocInfo) {
+	C.cfree(info.info.id.buf)
+}
+
+// Free doc made from go.
+func freeMyDoc(doc *Document) {
+	C.cfree(doc.doc.id.buf)
+	C.cfree(doc.doc.data.buf)
+}
+
+// Free docinfo made from couchstore
 func freeDocInfo(info *DocInfo) {
 	C.couchstore_free_docinfo(info.ptr)
 }
 
+// Free doc made from couchstore
 func freeDoc(doc *Document) {
 	C.couchstore_free_document(doc.ptr)
 }
 
 func (db *Couchstore) getDocInfo(id string) (*DocInfo, error) {
 	var inf *C.DocInfo
+	idstr := C.CString(id)
+	defer C.cfree(idstr)
 	err := maybeError(C.couchstore_docinfo_by_id(db.db,
-		unsafe.Pointer(C.CString(id)), _Ctype_size_t(len(id)), &inf))
+		unsafe.Pointer(idstr), _Ctype_size_t(len(id)), &inf))
 	if err == nil {
 		rv := &DocInfo{*inf, inf}
 		runtime.SetFinalizer(rv, freeDocInfo)

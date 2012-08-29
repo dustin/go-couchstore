@@ -70,3 +70,7 @@ couchstore_error_t execute_batch(Db *db, couchstore_bulk_t *bulk) {
     return couchstore_save_documents(db, bulk->docs, bulk->infos,
                                      bulk->len, COMPRESS_DOC_BODIES);
 }
+
+void cfree(char *p) {
+    free(p);
+}
