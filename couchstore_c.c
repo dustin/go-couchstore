@@ -39,6 +39,7 @@ void free_bulk_docs(couchstore_bulk_t *bulk) {
     free(bulk->infos);
     free(bulk->docs);
     memset(bulk, 0x00, sizeof(couchstore_bulk_t));
+    free(bulk);
 }
 
 void append_bulk_item(couchstore_bulk_t *b, DocInfo *docInfo, Doc *doc) {
