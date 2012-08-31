@@ -22,10 +22,11 @@ type WalkFun func(db *Couchstore, di *DocInfo) error
 type DocWalkFun func(db *Couchstore, di *DocInfo, doc *Document) error
 
 //export callbackAdapt
-func callbackAdapt(dbp unsafe.Pointer, infop unsafe.Pointer, ctx unsafe.Pointer) int {
+func callbackAdapt(dbp unsafe.Pointer, infopg unsafe.Pointer, ctx unsafe.Pointer) int {
 	cb := (*WalkFun)(ctx)
 	db := Couchstore{(*C.Db)(dbp), true}
-	info := &DocInfo{*(*C.DocInfo)(infop), nil}
+	infop := (*C.DocInfo)(infopg)
+	info := &DocInfo{*infop, infop}
 	switch i := (*cb)(&db, info).(type) {
 	case nil:
 		runtime.SetFinalizer(info, freeDocInfo)
