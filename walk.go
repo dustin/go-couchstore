@@ -40,9 +40,10 @@ func callbackAdapt(dbp unsafe.Pointer, infopg unsafe.Pointer, ctx unsafe.Pointer
 
 // Walk the DB from a specific location.
 func (db *Couchstore) Walk(startkey string, callback WalkFun) error {
+	startc := C.CString(startkey)
+	defer C.freecstring(startc)
 	e := C.start_all_docs(db.db,
-		C.CString(startkey),
-		unsafe.Pointer(&callback))
+		startc, unsafe.Pointer(&callback))
 	if e != C.COUCHSTORE_ERROR_CANCEL && e != C.COUCHSTORE_SUCCESS {
 		return couchError(e)
 	}
