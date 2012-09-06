@@ -82,6 +82,13 @@ func (db *Couchstore) Set(docInfo *DocInfo, doc *Document) error {
 		&doc.doc, &docInfo.info, C.COMPRESS_DOC_BODIES))
 }
 
+// Compact this DB to a new file.
+func (db *Couchstore) CompactTo(newfile string) error {
+	cstr := C.CString(newfile)
+	defer C.freecstring(cstr)
+	return maybeError(C.couchstore_compact_db(db.db, cstr))
+}
+
 // Get a new document instance with the given id and value.
 func NewDocument(id, value string) *Document {
 	doc := &Document{}
