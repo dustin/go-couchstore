@@ -45,7 +45,7 @@ func (b *bulkWriter) Set(di *DocInfo, doc *Document) {
 
 func (b *bulkWriter) Delete(di *DocInfo) {
 	di.info.deleted = 1
-	b.update <- instr{di, NewDocument("", "")}
+	b.update <- instr{di, NewDocument("", []byte{})}
 }
 
 func (db *Couchstore) commitBulk(batch []instr) error {

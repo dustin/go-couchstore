@@ -90,12 +90,16 @@ func (db *Couchstore) CompactTo(newfile string) error {
 }
 
 // Get a new document instance with the given id and value.
-func NewDocument(id, value string) *Document {
+func NewDocument(id string, value []byte) *Document {
 	doc := &Document{}
 
 	doc.doc.id.buf = C.CString(id)
 	doc.doc.id.size = _Ctype_size_t(len(id))
-	doc.doc.data.buf = C.CString(value)
+	if len(value) == 0 {
+		doc.doc.data.buf = nil
+	} else {
+		doc.doc.data.buf = (*_Ctype_char)(unsafe.Pointer(&value[0]))
+	}
 	doc.doc.data.size = _Ctype_size_t(len(value))
 
 	runtime.SetFinalizer(doc, freeMyDoc)
@@ -109,8 +113,9 @@ func (doc *Document) ID() string {
 }
 
 // Get the value of this document.
-func (doc *Document) Value() string {
-	return C.GoStringN(doc.doc.data.buf, _Ctype_int(doc.doc.data.size))
+func (doc *Document) Value() []byte {
+	return C.GoBytes(unsafe.Pointer(doc.doc.data.buf),
+		_Ctype_int(doc.doc.data.size))
 }
 
 // Create a new docinfo.
@@ -146,7 +151,6 @@ func freeMyDocInfo(info *DocInfo) {
 // Free doc made from go.
 func freeMyDoc(doc *Document) {
 	C.freecstring(doc.doc.id.buf)
-	C.freecstring(doc.doc.data.buf)
 }
 
 // Free docinfo made from couchstore
@@ -203,5 +207,5 @@ func (db *Couchstore) Get(id string) (*Document, *DocInfo, error) {
 func (db *Couchstore) Delete(id string) error {
 	di := NewDocInfo(id, 0)
 	di.info.deleted = 1
-	return db.Set(di, NewDocument(id, ""))
+	return db.Set(di, NewDocument(id, []byte{}))
 }

@@ -37,7 +37,7 @@ func TestDocumentMutation(t *testing.T) {
 	defer db.Close()
 	defer os.Remove(testFilename)
 
-	err = db.Set(NewDocInfo("x", 0), NewDocument("x", "value of x"))
+	err = db.Set(NewDocInfo("x", 0), NewDocument("x", []byte("value of x")))
 	if err != nil {
 		t.Fatalf("Error saving new document:  %v", err)
 	}
@@ -54,7 +54,7 @@ func TestDocumentMutation(t *testing.T) {
 	if di.ID() != "x" {
 		t.Fatalf("Expected info id 'x', got %#v", di.ID())
 	}
-	if doc.Value() != "value of x" {
+	if !reflect.DeepEqual(doc.Value(), []byte("value of x")) {
 		t.Fatalf("Expected doc value 'value of x', got %#v", doc)
 	}
 	if doc.ID() != "x" {
@@ -90,7 +90,7 @@ func TestWalking(t *testing.T) {
 	defer os.Remove(testFilename)
 
 	for k, v := range data {
-		err = db.Set(NewDocInfo(k, 0), NewDocument(k, v))
+		err = db.Set(NewDocInfo(k, 0), NewDocument(k, []byte(v)))
 		if err != nil {
 			t.Fatalf("Error saving new document:  %v", err)
 		}
@@ -147,7 +147,7 @@ func TestDocWalking(t *testing.T) {
 	defer os.Remove(testFilename)
 
 	for k, v := range data {
-		err = db.Set(NewDocInfo(k, 0), NewDocument(k, v))
+		err = db.Set(NewDocInfo(k, 0), NewDocument(k, []byte(v)))
 		if err != nil {
 			t.Fatalf("Error saving new document:  %v", err)
 		}
@@ -159,7 +159,7 @@ func TestDocWalking(t *testing.T) {
 	expect := data
 
 	err = db.WalkDocs("", func(fdb *Couchstore, di *DocInfo, doc *Document) error {
-		found[di.ID()] = doc.Value()
+		found[di.ID()] = string(doc.Value())
 		return nil
 	})
 	if err != nil {
@@ -174,7 +174,7 @@ func TestDocWalking(t *testing.T) {
 	expect = map[string]string{"b": "bye", "c": "cya"}
 
 	err = db.WalkDocs("b", func(fdb *Couchstore, di *DocInfo, doc *Document) error {
-		found[di.ID()] = doc.Value()
+		found[di.ID()] = string(doc.Value())
 		if di.ID() >= "c" {
 			return StopIteration
 		}
@@ -197,7 +197,7 @@ func TestBulkWriter(t *testing.T) {
 	defer db.Close()
 	defer os.Remove(testFilename)
 
-	db.Set(NewDocInfo("deleteme", 0), NewDocument("deleteme", "val"))
+	db.Set(NewDocInfo("deleteme", 0), NewDocument("deleteme", []byte("val")))
 	db.Commit()
 
 	bw := db.Bulk()
@@ -210,7 +210,7 @@ func TestBulkWriter(t *testing.T) {
 	}
 
 	for k, v := range stuff {
-		bw.Set(NewDocInfo(k, 0), NewDocument(k, v))
+		bw.Set(NewDocInfo(k, 0), NewDocument(k, []byte(v)))
 	}
 	bw.Delete(NewDocInfo("deleteme", 0))
 
@@ -223,7 +223,7 @@ func TestBulkWriter(t *testing.T) {
 
 	err = db.WalkDocs("", func(fdb *Couchstore, di *DocInfo, doc *Document) error {
 		if !di.IsDeleted() {
-			found[di.ID()] = doc.Value()
+			found[di.ID()] = string(doc.Value())
 		}
 		return nil
 	})
