@@ -9,6 +9,8 @@ package couchstore
 import "C"
 
 import (
+	"io"
+	"reflect"
 	"runtime"
 	"unsafe"
 )
@@ -118,6 +120,24 @@ func (doc *Document) Value() []byte {
 		_Ctype_int(doc.doc.data.size))
 }
 
+// Write the ID of this Document to the given writer.
+//
+// This performs much better than asking for the string, converting it
+// to bytes, and writing that out to the writer.
+func (doc *Document) WriteIDTo(w io.Writer) (int, error) {
+	return writeRawData(w, unsafe.Pointer(doc.doc.id.buf),
+		int(doc.doc.id.size))
+}
+
+// Write the Value of this Document to the given writer.
+//
+// This performs much better than asking for the string, converting it
+// to bytes, and writing that out to the writer.
+func (doc *Document) WriteValueTo(w io.Writer) (int, error) {
+	return writeRawData(w, unsafe.Pointer(doc.doc.data.buf),
+		int(doc.doc.data.size))
+}
+
 // Create a new docinfo.
 func NewDocInfo(id string, meta uint8) *DocInfo {
 	info := &DocInfo{}
@@ -136,6 +156,25 @@ func NewDocInfo(id string, meta uint8) *DocInfo {
 // Get the ID of this document info
 func (info *DocInfo) ID() string {
 	return C.GoStringN(info.info.id.buf, _Ctype_int(info.info.id.size))
+}
+
+func writeRawData(w io.Writer, p unsafe.Pointer, l int) (int, error) {
+	var theGoSlice []byte
+	sliceHeader := (*reflect.SliceHeader)((unsafe.Pointer(&theGoSlice)))
+	sliceHeader.Cap = l
+	sliceHeader.Len = l
+	sliceHeader.Data = uintptr(p)
+
+	return w.Write(theGoSlice)
+}
+
+// Write the ID of this DocInfo to the given writer.
+//
+// This performs much better than asking for the string, converting it
+// to bytes, and writing that out to the writer.
+func (info *DocInfo) WriteIDTo(w io.Writer) (int, error) {
+	return writeRawData(w, unsafe.Pointer(info.info.id.buf),
+		int(info.info.id.size))
 }
 
 // True if this docinfo represents a deleted document.
