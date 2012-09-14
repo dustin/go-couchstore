@@ -37,6 +37,20 @@ func TestDocumentMutation(t *testing.T) {
 	defer db.Close()
 	defer os.Remove(testFilename)
 
+	verifyInfo := func(got, exp DBInfo) {
+		// Ignore these fields.
+		got.SpaceUsed = 0
+		exp.SpaceUsed = 0
+		got.HeaderPosition = 0
+		exp.HeaderPosition = 0
+		if !reflect.DeepEqual(got, exp) {
+			t.Fatalf("Expected info = %v, got %v", exp, got)
+		}
+	}
+
+	inf := db.Info()
+	verifyInfo(inf, DBInfo{0, 0, 0, 0, 0})
+
 	err = db.Set(NewDocInfo("x", 0), NewDocument("x", []byte("value of x")))
 	if err != nil {
 		t.Fatalf("Error saving new document:  %v", err)
@@ -45,6 +59,9 @@ func TestDocumentMutation(t *testing.T) {
 	if err = db.Commit(); err != nil {
 		t.Fatalf("Error committing change: %v", err)
 	}
+
+	inf = db.Info()
+	verifyInfo(inf, DBInfo{1, 1, 0, 93, 4096})
 
 	doc, di, err := db.Get("x")
 	if err != nil {
@@ -65,6 +82,9 @@ func TestDocumentMutation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error deleting document: %v", err)
 	}
+
+	inf = db.Info()
+	verifyInfo(inf, DBInfo{2, 0, 1, 83, 4096})
 
 	doc2, di2, err := db.Get("x")
 	if err != nil {

@@ -32,6 +32,14 @@ type DocInfo struct {
 	ptr  *C.DocInfo
 }
 
+type DBInfo struct {
+	LastSeq        uint64
+	DocCount       uint64
+	DeletedCount   uint64
+	SpaceUsed      uint64
+	HeaderPosition uint64
+}
+
 func (e couchError) Error() string {
 	return C.GoString(C.couchstore_strerror(_Ctype_couchstore_error_t(e)))
 }
@@ -89,6 +97,19 @@ func (db *Couchstore) CompactTo(newfile string) error {
 	cstr := C.CString(newfile)
 	defer C.freecstring(cstr)
 	return maybeError(C.couchstore_compact_db(db.db, cstr))
+}
+
+// Get info about the DB
+func (db *Couchstore) Info() DBInfo {
+	var c_info C.DbInfo
+	maybeError(C.couchstore_db_info(db.db, &c_info))
+	return DBInfo{
+		LastSeq:        uint64(c_info.last_sequence),
+		DocCount:       uint64(c_info.doc_count),
+		DeletedCount:   uint64(c_info.deleted_count),
+		SpaceUsed:      uint64(c_info.space_used),
+		HeaderPosition: uint64(c_info.header_position),
+	}
 }
 
 // Get a new document instance with the given id and value.
