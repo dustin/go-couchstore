@@ -48,7 +48,10 @@ func TestDocumentMutation(t *testing.T) {
 		}
 	}
 
-	inf := db.Info()
+	inf, err := db.Info()
+	if err != nil {
+		t.Fatalf("Error getting db info: %v", err)
+	}
 	verifyInfo(inf, DBInfo{0, 0, 0, 0, 0})
 
 	err = db.Set(NewDocInfo("x", 0), NewDocument("x", []byte("value of x")))
@@ -60,7 +63,10 @@ func TestDocumentMutation(t *testing.T) {
 		t.Fatalf("Error committing change: %v", err)
 	}
 
-	inf = db.Info()
+	inf, err = db.Info()
+	if err != nil {
+		t.Fatalf("Error getting db info")
+	}
 	verifyInfo(inf, DBInfo{1, 1, 0, 93, 4096})
 
 	doc, di, err := db.Get("x")
@@ -83,7 +89,10 @@ func TestDocumentMutation(t *testing.T) {
 		t.Fatalf("Error deleting document: %v", err)
 	}
 
-	inf = db.Info()
+	inf, err = db.Info()
+	if err != nil {
+		t.Fatalf("Error getting dbinfo: %v", err)
+	}
 	verifyInfo(inf, DBInfo{2, 0, 1, 83, 4096})
 
 	doc2, di2, err := db.Get("x")

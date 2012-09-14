@@ -100,16 +100,19 @@ func (db *Couchstore) CompactTo(newfile string) error {
 }
 
 // Get info about the DB
-func (db *Couchstore) Info() DBInfo {
+func (db *Couchstore) Info() (DBInfo, error) {
 	var c_info C.DbInfo
-	maybeError(C.couchstore_db_info(db.db, &c_info))
+	err := maybeError(C.couchstore_db_info(db.db, &c_info))
+	if err != nil {
+		return DBInfo{}, err
+	}
 	return DBInfo{
 		LastSeq:        uint64(c_info.last_sequence),
 		DocCount:       uint64(c_info.doc_count),
 		DeletedCount:   uint64(c_info.deleted_count),
 		SpaceUsed:      uint64(c_info.space_used),
 		HeaderPosition: uint64(c_info.header_position),
-	}
+	}, nil
 }
 
 // Get a new document instance with the given id and value.
