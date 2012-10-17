@@ -54,9 +54,14 @@ func TestDocumentMutation(t *testing.T) {
 	}
 	verifyInfo(inf, DBInfo{0, 0, 0, 0, 0})
 
-	err = db.Set(NewDocInfo("x", 0), NewDocument("x", []byte("value of x")))
+	di := NewDocInfo("x", 0)
+	di.SetRevisionSequence(1234)
+	err = db.Set(di, NewDocument("x", []byte("value of x")))
 	if err != nil {
 		t.Fatalf("Error saving new document:  %v", err)
+	}
+	if di.Sequence() != 1 {
+		t.Fatalf("Expected to create sequence 1, got %d", di.Sequence())
 	}
 
 	if err = db.Commit(); err != nil {
@@ -72,6 +77,12 @@ func TestDocumentMutation(t *testing.T) {
 	doc, di, err := db.Get("x")
 	if err != nil {
 		t.Fatalf("Error loading stored document: %v", err)
+	}
+	if di.Sequence() != 1 {
+		t.Fatalf("Expected to read sequence 1, got %d", di.Sequence())
+	}
+	if di.RevisionSequence() != 1234 {
+		t.Fatalf("Expected to read revision-sequence 1234, got %d", di.RevisionSequence())
 	}
 
 	if di.ID() != "x" {
@@ -105,11 +116,14 @@ func TestDocumentMutation(t *testing.T) {
 }
 
 func TestWalking(t *testing.T) {
-	data := map[string]string{
-		"a": "aye",
-		"b": "bye",
-		"c": "cya",
-		"d": "dye",
+	data := []struct {
+		k, v string
+		seq  uint32
+	}{
+		{"a", "aye", 17},
+		{"b", "bye", 3},
+		{"c", "cya", 99},
+		{"d", "dye", 1 << 31},
 	}
 	db, err := Open(",test-database.couch", true)
 	if err != nil {
@@ -118,8 +132,10 @@ func TestWalking(t *testing.T) {
 	defer db.Close()
 	defer os.Remove(testFilename)
 
-	for k, v := range data {
-		err = db.Set(NewDocInfo(k, 0), NewDocument(k, []byte(v)))
+	for _, item := range data {
+		di := NewDocInfo(item.k, 0)
+		di.SetRevisionSequence(item.seq)
+		err = db.Set(di, NewDocument(item.k, []byte(item.v)))
 		if err != nil {
 			t.Fatalf("Error saving new document:  %v", err)
 		}
@@ -130,8 +146,16 @@ func TestWalking(t *testing.T) {
 	found := []string{}
 	expect := []string{"a", "b", "c", "d"}
 
+	var i uint64 = 0
 	err = db.Walk("", func(fdb *Couchstore, di *DocInfo) error {
+		if di.Sequence() != i+1 {
+			t.Fatalf("Expected to read sequence %d, got %d", i+1, di.Sequence())
+		}
+		if di.RevisionSequence() != data[i].seq {
+			t.Fatalf("Expected to read rev_seq %d, got %d", data[i].seq, di.RevisionSequence())
+		}
 		found = append(found, di.ID())
+		i++
 		return nil
 	})
 	if err != nil {

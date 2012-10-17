@@ -202,8 +202,32 @@ func (info *DocInfo) WriteIDTo(w io.Writer) (int, error) {
 }
 
 // True if this docinfo represents a deleted document.
-func (info DocInfo) IsDeleted() bool {
+func (info *DocInfo) IsDeleted() bool {
 	return info.info.deleted != 0
+}
+
+// The database sequence number of a stored document.
+// Every revision (including deletion) of any document is assigned a sequence number from a
+// database-wide counter that starts at 1 and increments after every change.
+func (info *DocInfo) Sequence() uint64 {
+	return uint64(info.info.db_seq)
+}
+
+// The revision sequence number of a stored document.
+// This field is for application use; it defaults to zero but will be persisted if set before
+// storing a document. Its intended purpose is as a revision generation counter, hence the name.
+func (info *DocInfo) RevisionSequence() uint32 {
+	return uint32(info.info.rev_seq)
+}
+
+// Set the revision sequence number of a document.
+// This field is for application use; it defaults to zero but will be persisted if set before
+// storing a document. Its intended purpose is as a revision generation counter, hence the name.
+func (info *DocInfo) SetRevisionSequence(sequence uint32) {
+	info.info.rev_seq = C.uint64_t(sequence)
+	// NOTE: The C type of rev_seq is declared as uint64_t, but only 32 bits are stored.
+	// The type may change to uint32_t soon (see bug MB-6945) which will cause a compile error on
+	// the above line :( until it's changed to use uint32_t.
 }
 
 // Free docinfo made from go.
