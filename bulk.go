@@ -4,8 +4,11 @@ package couchstore
 #include "csgo.h"
 */
 import "C"
+import
 
 // Interface for writing bulk data into couchstore.
+"errors"
+
 type BulkWriter interface {
 	// Set a document.
 	Set(*DocInfo, *Document)
@@ -29,14 +32,20 @@ type bulkWriter struct {
 }
 
 func (b *bulkWriter) Close() error {
-	b.quit <- true
+	close(b.quit)
 	return nil
 }
 
+var errClosed = errors.New("db is closed")
+
 func (b *bulkWriter) Commit() error {
 	ch := make(chan error)
-	b.commit <- ch
-	return <-ch
+	select {
+	case b.commit <- ch:
+		return <-ch
+	case <-b.quit:
+		return errClosed
+	}
 }
 
 func (b *bulkWriter) Set(di *DocInfo, doc *Document) {
