@@ -125,8 +125,8 @@ func NewDocument(id string, value []byte) *Document {
 		doc.doc.data.buf = nil
 	} else {
 		doc.doc.data.buf = (*_Ctype_char)(unsafe.Pointer(&value[0]))
+		doc.doc.data.size = _Ctype_size_t(len(value))
 	}
-	doc.doc.data.size = _Ctype_size_t(len(value))
 
 	runtime.SetFinalizer(doc, freeMyDoc)
 
@@ -294,5 +294,5 @@ func (db *Couchstore) Get(id string) (*Document, *DocInfo, error) {
 func (db *Couchstore) Delete(id string) error {
 	di := NewDocInfo(id, 0)
 	di.info.deleted = 1
-	return db.Set(di, NewDocument(id, []byte{}))
+	return db.Set(di, NewDocument(id, nil))
 }
